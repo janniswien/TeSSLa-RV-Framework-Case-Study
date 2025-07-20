@@ -1,0 +1,6 @@
+# Specification
+This specification describes the correctness properties that a correct execution of the system under test must fulfill. The specification utilizes the [TeSSLA](https://tessla.io) language and its [standard library](https://tessla.io/stdlib/2.1.0/streamfunctions/). 
+
+It is structured by the declaration of 15 requirements that must all be fulfilled. Each requirement consists of a pre-condition, trigger, and post-condition (i.e., `pre-condition ∧ trigger → post-condition` must halt for a requirement to be fulfilled). A requirements correctness equation is evaluated in a four-valued truth domain with the values `false` (`⊥` or `-2`), `presumably false` (`⊥`<sup>`P`</sup> or `-1`), `presumably true` (`⊤`<sup>`P`</sup> or `1`), and `true` (`⊤` or `2`). 
+
+The truth evaluation is performed by the commonly used function `fourValueEval`, which checks for the actual fulfillment of the requirement as well as for the expiration of its components (e.g., if a trigger has expired due to the capture of a subsequent one).

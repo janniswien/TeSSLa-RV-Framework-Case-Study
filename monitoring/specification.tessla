@@ -112,28 +112,34 @@ def isRequirementFulfilled(
   on(merge(trigger, risingPostAfterTrigger), isPostFulfilled)
 }
 
-# Checks if a requirement (identified by its qualified trigger) is finally decided
-def isRequirementDecided(
+# Checks if a requirement (identified by its qualified trigger) is expired (i.e., reactivity time is over or next trigger occurred)
+def isRequirementExpired(
     qualifiedTrigger: Events[Unit],
-    waitingPeriod: Int # In Seconds
+    waitingPeriod: Int, # In Seconds
+    waitUntilNewTrigger: Bool
 ): Events[Bool] = {
-  def hasSubsequentTrigger = 
-    resetCount(allTriggers, qualifiedTrigger) >= 1
-    # Assuming the global system clock measures milliseconds
-  def isExpired = 
-    time(allTriggers) - time(qualifiedTrigger) > waitingPeriod * 1000
-  
-  hasSubsequentTrigger && isExpired
+  def hasSubsequentTrigger =
+  # counting triggers after this one
+  # and checking if there has been at least one
+  resetCount ( allTriggers , qualifiedTrigger ) >= 1
+  # assuming the global clock measures milliseconds
+  def isExpired =
+    time ( allTriggers ) - time ( qualifiedTrigger ) 
+    > waitingPeriod * 1000
+  if ( waitUntilNewTrigger )
+  then hasSubsequentTrigger && isExpired
+  else isExpired
 }
 
 # Evaluates the correctness of a qualified trigger and a post-Condition
 # Results in a value of the four-valued truth domain
-def fourValueTruthEvaluation(
+def fourValueEval(
   trigger: Events[Unit], 
   post: Events[Bool],
-  waitingPeriod: Int # In Seconds
+  waitingPeriod: Int, # In Seconds
+  waitUntilNewTrigger: Bool
 ): Events[Int] = {
-  def decided = default(isRequirementDecided(trigger, waitingPeriod), false)
+  def decided = default(isRequirementExpired(trigger, waitingPeriod, waitUntilNewTrigger), false)
   def fulfilled = default(isRequirementFulfilled(trigger, post, decided), true)
   
   default(lift4(
@@ -167,7 +173,7 @@ def requirement1() = {
   def trigger = qualifiedTrigger(rqRetrievalTrigger, pre)
   def post = defined(rqDbRead) && defined(rqDbWrite) && !connector
   
-  fourValueTruthEvaluation(trigger, post, 10)
+  fourValueEval(trigger, post, 10, true)
 }
 
 # RQ 2
@@ -214,7 +220,7 @@ def rq2PostCondition() = {
 }
 
 def requirement2() = {
-  fourValueTruthEvaluation(stateTransitionTrigger, rq2PostCondition, 10)
+  fourValueEval(stateTransitionTrigger, rq2PostCondition, 10, true)
 }
 
 # RQ 3
@@ -223,7 +229,7 @@ def requirement3() = {
   def trigger = qualifiedTrigger(requestResponseFailTrigger, pre)
   def post = !noEvent(requestFailTrigger, trigger)
   
-  fourValueTruthEvaluation(trigger, post, 10)
+  fourValueEval(trigger, post, 10, true)
 }
 
 # RQ 4
@@ -233,7 +239,7 @@ def requirement4() = {
    )
    def post = highestExistingVersion <= versionedItemUpdate.version
 
-  fourValueTruthEvaluation(versionedItemUpdateTrigger, post, 10)
+  fourValueEval(versionedItemUpdateTrigger, post, 10, true)
 }
 
 # RQ 5
@@ -242,7 +248,7 @@ def requirement5() = {
   def trigger = qualifiedTrigger(progTerminationTrigger, pre)
   def post = defined(falling(sync)) && isHttpError(dispatchedHttpStatus)
   
-  fourValueTruthEvaluation(trigger, post, 10)
+  fourValueEval(trigger, post, 10, true)
 }
 
 # RQ 6
@@ -251,7 +257,7 @@ def requirement6() = {
   def trigger = qualifiedTrigger(syncTrigger, pre)
   def post = sync && connector
   
-  fourValueTruthEvaluation(trigger, post, 300)
+  fourValueEval(trigger, post, 300, true)
 }
 
 # RQ 7
@@ -267,13 +273,13 @@ def rq7PostCondition() = {
 }
 
 def requirement7() = {
-  amplifyNegativeVerdict(fourValueTruthEvaluation(specExecUpdateTrigger, rq7PostCondition, 10))
+  amplifyNegativeVerdict(fourValueEval(specExecUpdateTrigger, rq7PostCondition, 10, true))
 }
 
 # RQ 8
 def requirement8() = {
   def post = List.find(domainVariantUpdate.existing, domainVariantUpdate.created) == -1
-  amplifyNegativeVerdict(fourValueTruthEvaluation(voUpdateTrigger, default(post, true), 10))
+  amplifyNegativeVerdict(fourValueEval(voUpdateTrigger, default(post, true), 10, true))
 }
 
 # RQ 9
@@ -282,7 +288,7 @@ def requirement9() = {
   def trigger = qualifiedTrigger(exceptionTrigger, pre)
   def post = defined(progTerminationTrigger)
   
-  fourValueTruthEvaluation(trigger, post, 10)
+  fourValueEval(trigger, post, 10, true)
 }
 
 # RQ 10
@@ -293,7 +299,7 @@ def requirement10() = {
   def millisecondsPerWeek = 7 * millisecondsPerDay
   def post = !defined(lastSync) || lastSync >= time(lastSync) - millisecondsPerDay
 
-  amplifyNegativeVerdict(fourValueTruthEvaluation(trigger, default(post, true), 10))
+  amplifyNegativeVerdict(fourValueEval(trigger, default(post, true), 10, true))
 }
 
 # RQ 11
@@ -302,7 +308,7 @@ def requirement11() = {
   def trigger = qualifiedTrigger(programIdleTrigger, pre)
   def post = defined(progTerminationTrigger)
   
-  amplifyNegativeVerdict(fourValueTruthEvaluation(trigger, post, 10))
+  amplifyNegativeVerdict(fourValueEval(trigger, post, 10, true))
 }
 
 # RQ 12
@@ -311,7 +317,7 @@ def requirement12() = {
   def trigger = qualifiedTrigger(requestResponseEmptyTrigger, pre)
   def post = defined(requestFailTrigger)
   
-  fourValueTruthEvaluation(trigger, post, 10)
+  fourValueEval(trigger, post, 10, true)
 }
 
 # RQ 13
@@ -320,7 +326,7 @@ def requirement13() = {
   def trigger = qualifiedTrigger(requestFailTrigger, pre)
   def post = defined(progTerminationTrigger)
   
-  fourValueTruthEvaluation(trigger, post, 10)
+  fourValueEval(trigger, post, 10, true)
 }
 
 # RQ 14
@@ -329,7 +335,7 @@ def requirement14() = {
   def trigger = qualifiedTrigger(requestFailTrigger, pre)
   def post = defined(progTerminationTrigger) || request
   
-  fourValueTruthEvaluation(trigger, post, 10)
+  fourValueEval(trigger, post, 10, true)
 }
 
 # RQ 15
@@ -338,7 +344,7 @@ def requirement15() = {
   def trigger = qualifiedTrigger(requestIdleTrigger, pre)
   def post = defined(requestFailTrigger)
   
-  fourValueTruthEvaluation(trigger, post, 10)
+  fourValueEval(trigger, post, 10, true)
 }
 
 # Construct Verdict
