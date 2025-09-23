@@ -1,6 +1,6 @@
 # Runtime Verification with TeSSLa: A Practical Case Study
 
-This repository contains the implementation of a prototypical [Runtime Verification](https://www.sciencedirect.com/science/article/pii/S1567832608000775) demonstrator developed during a project at Infineon Austria's post-silicon V&V. The associated research paper is under review and will be published soon.
+This repository contains the implementation of a prototypical Runtime Verification demonstrator developed during a project at Infineon Austria's post-silicon V&V in cooperation with the University of Lübeck[^1].
 
 ## System under Test (SuT)
 The tested system is part of a verification and validation (V&V) management software used for post-silicon validation of semiconductor components. Periodically, this sub-system synchronizes requirements and related data from an external requirements management system. Those requirements describe the microelectronic correctness properties that subsequent verification runs, managed by the software, must fulfil. For every synchronization procedure, the system under test (SuT) must check the accuracy and overlap of the received data with the existing data. 
@@ -18,3 +18,5 @@ This prototype used the [TeSSLa](https://tessla.io/) tool and language to develo
 ## Repository Structure
 * `/specification`: Contains the TeSSLa specification with a description of a correct system run.
 * `/monitoring`: Implements the monitoring user interface and server-side trace processing to handle logged traces and execute the monitor on them.
+
+[^1]: Hipler, R., Kallwies, H., Leucker, M., van Dommele, K.G., Wien, J. (2026). A Practical Approach to Runtime Verification. In: Könighofer, B., Torfah, H. (eds) Runtime Verification. RV 2025. Lecture Notes in Computer Science, vol 16087. Springer, Cham. [https://doi.org/10.1007/978-3-032-05435-7_21](https://doi.org/10.1007/978-3-032-05435-7_21)
